@@ -2218,10 +2218,14 @@ export default async function build(
         .traceFn(() => {
           const normalizedCacheHandlers: Record<string, string> = {}
 
-          for (const [key, value] of Object.entries(
-            config.experimental.cacheHandlers || {}
-          )) {
+          const cacheHandlers = config.experimental.cacheHandlers || {}
+          for (const [key, value] of Object.entries(cacheHandlers)) {
             if (key && value) {
+              let handlerPath = value
+              while (handlerPath in cacheHandlers) {
+                handlerPath = cacheHandlers[handlerPath]!
+              }
+
               normalizedCacheHandlers[key] = path.relative(distDir, value)
             }
           }

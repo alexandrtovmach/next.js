@@ -142,15 +142,21 @@ export async function collectBuildTraces({
       }
 
       if (cacheHandlers) {
-        for (const handlerPath of Object.values(cacheHandlers)) {
+        for (let handlerPath of Object.values(cacheHandlers)) {
           if (handlerPath) {
-            sharedEntriesSet.push(
-              require.resolve(
-                path.isAbsolute(handlerPath)
-                  ? handlerPath
-                  : path.join(dir, handlerPath)
+            while (handlerPath in cacheHandlers) {
+              handlerPath = cacheHandlers[handlerPath]!
+            }
+
+            if (handlerPath !== 'default' && handlerPath !== 'remote') {
+              sharedEntriesSet.push(
+                require.resolve(
+                  path.isAbsolute(handlerPath)
+                    ? handlerPath
+                    : path.join(dir, handlerPath)
+                )
               )
-            )
+            }
           }
         }
       }

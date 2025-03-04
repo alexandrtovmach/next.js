@@ -931,9 +931,23 @@ function assignDefaults(
           reason: 'key must only use characters a-z and -',
         })
       } else {
-        const handlerPath = result.experimental.cacheHandlers[key]
+        let handlerPath: string | undefined =
+          result.experimental.cacheHandlers[key]
 
-        if (handlerPath && !existsSync(handlerPath)) {
+        while (
+          handlerPath &&
+          handlerPath in result.experimental.cacheHandlers
+        ) {
+          handlerPath = result.experimental.cacheHandlers[handlerPath]
+        }
+
+        if (
+          (!handlerPath && result.experimental.cacheHandlers[key]) ||
+          (handlerPath &&
+            handlerPath !== 'default' &&
+            handlerPath !== 'remote' &&
+            !existsSync(handlerPath))
+        ) {
           invalidHandlerItems.push({
             key,
             reason: `cache handler path provided does not exist, received ${handlerPath}`,
