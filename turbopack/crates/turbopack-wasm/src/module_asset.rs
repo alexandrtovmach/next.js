@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 use turbo_rcstr::RcStr;
 use turbo_tasks::{fxindexmap, ResolvedVc, Value, Vc};
-use turbo_tasks_fs::FileSystemPath;
+use turbo_tasks_fs::{glob::Glob, FileSystemPath};
 use turbopack_core::{
     asset::{Asset, AssetContent},
     chunk::{
@@ -181,6 +181,11 @@ impl EcmascriptChunkPlaceable for WebAssemblyModuleAsset {
     #[turbo_tasks::function]
     fn get_async_module(self: Vc<Self>) -> Vc<OptionAsyncModule> {
         self.loader().get_async_module()
+    }
+
+    #[turbo_tasks::function]
+    fn is_marked_as_side_effect_free(&self, _side_effect_free_packages: Vc<Glob>) -> Vc<bool> {
+        Vc::cell(true)
     }
 }
 
