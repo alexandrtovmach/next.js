@@ -50,19 +50,21 @@ describe('app-dir - metadata-icons', () => {
       expect(url).toMatch(/\/custom-icon\/sub$/)
     })
 
-    const iconsInHead = await browser.elementsByCss('head link[rel="icon"]')
-    let iconUrls = await Promise.all(
-      iconsInHead.map(
-        async (el) => (await el.getAttribute('href')).split('?')[0]
+    await retry(async () => {
+      const iconsInHead = await browser.elementsByCss('head link[rel="icon"]')
+      let iconUrls = await Promise.all(
+        iconsInHead.map(
+          async (el) => (await el.getAttribute('href')).split('?')[0]
+        )
       )
-    )
-    // Pick last 2 icons
-    // In non-headless mode, the icons are deduped;
-    // In headless mode, the icons are not deduped
-    expect(iconUrls.length === 4 ? iconUrls.slice(2) : iconUrls).toEqual([
-      '/favicon.ico',
-      '/star.png',
-    ])
+      // Pick last 2 icons
+      // In non-headless mode, the icons are deduped;
+      // In headless mode, the icons are not deduped
+      expect(iconUrls.length === 4 ? iconUrls.slice(2) : iconUrls).toEqual([
+        '/favicon.ico',
+        '/star.png',
+      ])
+    })
 
     // navigate back
     await browser.elementByCss('#custom-icon-link').click()
@@ -71,17 +73,19 @@ describe('app-dir - metadata-icons', () => {
       expect(url).toMatch(/\/custom-icon$/)
     })
 
-    const icons = await browser.elementsByCss('head link[rel="icon"]')
-    iconUrls = await Promise.all(
-      icons.map(async (el) => (await el.getAttribute('href')).split('?')[0])
-    )
+    await retry(async () => {
+      const icons = await browser.elementsByCss('head link[rel="icon"]')
+      const iconUrls = await Promise.all(
+        icons.map(async (el) => (await el.getAttribute('href')).split('?')[0])
+      )
 
-    // Pick last 2 icons
-    // In non-headless mode, the icons are deduped;
-    // In headless mode, the icons are not deduped
-    expect(iconUrls.length === 4 ? iconUrls.slice(2) : iconUrls).toEqual([
-      '/favicon.ico',
-      '/heart.png',
-    ])
+      // Pick last 2 icons
+      // In non-headless mode, the icons are deduped;
+      // In headless mode, the icons are not deduped
+      expect(iconUrls.length === 4 ? iconUrls.slice(2) : iconUrls).toEqual([
+        '/favicon.ico',
+        '/heart.png',
+      ])
+    })
   })
 })
