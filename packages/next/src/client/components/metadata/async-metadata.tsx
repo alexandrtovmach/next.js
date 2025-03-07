@@ -31,6 +31,7 @@ export function AsyncMetadata({
        *
        */}
       <script
+        async
         defer
         nonce={nonce}
         dangerouslySetInnerHTML={{
