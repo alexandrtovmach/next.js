@@ -379,19 +379,6 @@ function createMergedTransformStream(
 const CLOSE_TAG = '</body></html>'
 
 /**
- * For chromium based browsers (Chrome, Edge, etc.) and Safari, icons need to stay under <head>
- * to be picked up by the browser. Firefox doesn't have this requirement.
- *
- * Firefox won't work if we insert those icons into head, it will still pick up default favicon.ico.
- * Because of this limitation, we just don't insert for firefox and leave the default behavior for it.
- *
- */
-const INSERT_ICON_SCRIPT = `<script data-icon-insert defer="">\
-!/firefox/i.test(navigator.userAgent) && \
-document.querySelectorAll('body link[rel="icon"], body link[rel="apple-touch-icon"]').forEach(el => document.head.appendChild(el.cloneNode()))\
-</script>`
-
-/**
  * This transform stream moves the suffix to the end of the stream, so results
  * like `</body></html><script>...</script>` will be transformed to
  * `<script>...</script></body></html>`.
@@ -428,7 +415,6 @@ function createMoveSuffixStream(): TransformStream<Uint8Array, Uint8Array> {
           )
           controller.enqueue(after)
         }
-        controller.enqueue(encoder.encode(INSERT_ICON_SCRIPT))
       } else {
         controller.enqueue(chunk)
       }
@@ -539,6 +525,7 @@ export type ContinueStreamOptions = {
   getServerInsertedHTML: () => Promise<string>
   getServerInsertedMetadata: () => Promise<string>
   validateRootLayout?: boolean
+  nonce?: string
   /**
    * Suffix to inject after the buffered data, but before the close tags.
    */

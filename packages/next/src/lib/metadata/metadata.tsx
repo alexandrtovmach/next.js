@@ -74,7 +74,7 @@ export function createMetadataComponents({
   ViewportBoundary: (props: { children: React.ReactNode }) => React.ReactNode
   serveStreamingMetadata: boolean
 }): {
-  MetadataTree: React.ComponentType
+  MetadataTree: React.ComponentType<{ nonce?: string }>
   ViewportTree: React.ComponentType
   getMetadataReady: () => Promise<void>
   getViewportReady: () => Promise<void>
@@ -94,10 +94,10 @@ export function createMetadataComponents({
     )
   }
 
-  function MetadataTree() {
+  function MetadataTree(props: { nonce?: string }) {
     return (
       <MetadataBoundary>
-        <Metadata />
+        <Metadata {...props} />
       </MetadataBoundary>
     )
   }
@@ -201,12 +201,12 @@ export function createMetadataComponents({
       }
     }
   }
-  async function Metadata() {
+  async function Metadata({ nonce }: { nonce?: string }) {
     const promise = resolveFinalMetadata()
     if (serveStreamingMetadata) {
       return (
         <Suspense fallback={null}>
-          <AsyncMetadata promise={promise} />
+          <AsyncMetadata promise={promise} nonce={nonce} />
         </Suspense>
       )
     }

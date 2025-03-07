@@ -40,7 +40,7 @@ export function createComponentTree(props: {
   missingSlots?: Set<string>
   preloadCallbacks: PreloadCallbacks
   authInterrupts: boolean
-  StreamingMetadata: React.ComponentType<{}> | null
+  StreamingMetadata: React.ComponentType<{ nonce?: string }> | null
   StreamingMetadataOutlet: React.ComponentType
 }): Promise<CacheNodeSeedData> {
   return getTracer().trace(
@@ -92,7 +92,7 @@ async function createComponentTreeInternal({
   missingSlots?: Set<string>
   preloadCallbacks: PreloadCallbacks
   authInterrupts: boolean
-  StreamingMetadata: React.ComponentType<{}> | null
+  StreamingMetadata: React.ComponentType<{ nonce?: string }> | null
   StreamingMetadataOutlet: React.ComponentType | null
 }): Promise<CacheNodeSeedData> {
   const {
@@ -400,7 +400,9 @@ async function createComponentTreeInternal({
   const isNotDefaultSegment = actualSegment !== DEFAULT_SEGMENT_KEY
 
   const metadata =
-    isNotDefaultSegment && StreamingMetadata ? <StreamingMetadata /> : undefined
+    isNotDefaultSegment && StreamingMetadata ? (
+      <StreamingMetadata nonce={ctx.nonce} />
+    ) : undefined
 
   // Use the same condition to render metadataOutlet as metadata
   const metadataOutlet =
