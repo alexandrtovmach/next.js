@@ -1,7 +1,13 @@
 import { useCallback, useContext, useEffect, useRef } from 'react'
 import { GlobalLayoutRouterContext } from '../../../../shared/lib/app-router-context.shared-runtime'
 import { getSocketUrl } from './get-socket-url'
-import type { TurbopackMsgToBrowser } from '../../../../server/dev/hot-reloader-types'
+import { IS_TURBOPACK } from './turbopack-hot-reloader-common'
+
+declare global {
+  interface Window {
+    __NEXT_HMR_LATENCY_CB: ((latencyMs: number) => void) | undefined
+  }
+}
 
 export function useWebsocket(assetPrefix: string) {
   const webSocketRef = useRef<WebSocket>(undefined)
@@ -33,62 +39,6 @@ export function useSendMessage(webSocketRef: ReturnType<typeof useWebsocket>) {
   return sendMessage
 }
 
-export function useTurbopack(
-  sendMessage: ReturnType<typeof useSendMessage>,
-  onUpdateError: (err: unknown) => void
-) {
-  const turbopackState = useRef<{
-    init: boolean
-    queue: Array<TurbopackMsgToBrowser> | undefined
-    callback: ((msg: TurbopackMsgToBrowser) => void) | undefined
-  }>({
-    init: false,
-    // Until the dynamic import resolves, queue any turbopack messages which will be replayed.
-    queue: [],
-    callback: undefined,
-  })
-
-  const processTurbopackMessage = useCallback((msg: TurbopackMsgToBrowser) => {
-    const { callback, queue } = turbopackState.current
-    if (callback) {
-      callback(msg)
-    } else {
-      queue!.push(msg)
-    }
-  }, [])
-
-  useEffect(() => {
-    const { current: initCurrent } = turbopackState
-    // TODO(WEB-1589): only install if `process.turbopack` set.
-    if (initCurrent.init) {
-      return
-    }
-    initCurrent.init = true
-
-    import(
-      // @ts-expect-error requires "moduleResolution": "node16" in tsconfig.json and not .ts extension
-      '@vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts'
-    ).then(({ connect }) => {
-      const { current } = turbopackState
-      connect({
-        addMessageListener(cb: (msg: TurbopackMsgToBrowser) => void) {
-          current.callback = cb
-
-          // Replay all Turbopack messages before we were able to establish the HMR client.
-          for (const msg of current.queue!) {
-            cb(msg)
-          }
-          current.queue = undefined
-        },
-        sendMessage,
-        onUpdateError,
-      })
-    })
-  }, [sendMessage, onUpdateError])
-
-  return processTurbopackMessage
-}
-
 export function useWebsocketPing(
   websocketRef: ReturnType<typeof useWebsocket>
 ) {
@@ -98,7 +48,7 @@ export function useWebsocketPing(
   useEffect(() => {
     // Never send pings when using Turbopack as it's not used.
     // Pings were originally used to keep track of active routes in on-demand-entries with webpack.
-    if (process.env.TURBOPACK) {
+    if (IS_TURBOPACK) {
       return
     }
 
@@ -114,4 +64,29 @@ export function useWebsocketPing(
     }, 2500)
     return () => clearInterval(interval)
   }, [tree, sendMessage])
+}
+
+export function reportHmrLatency(
+  sendMessage: (message: string) => void,
+  updatedModules: ReadonlyArray<string>,
+  startMsSinceEpoch: number,
+  endMsSinceEpoch: number
+) {
+  sendMessage(
+    JSON.stringify({
+      event: 'client-hmr-latency',
+      id: window.__nextDevClientId,
+      startTime: startMsSinceEpoch,
+      endTime: endMsSinceEpoch,
+      page: window.location.pathname,
+      updatedModules,
+      // Whether the page (tab) was hidden at the time the event occurred.
+      // This can impact the accuracy of the event's timing.
+      isPageHidden: document.visibilityState === 'hidden',
+    })
+  )
+  if ('NEXT_HMR_LATENCY_CB' in self && self.__NEXT_HMR_LATENCY_CB) {
+    const latencyMs = endMsSinceEpoch - startMsSinceEpoch
+    self.__NEXT_HMR_LATENCY_CB(latencyMs)
+  }
 }
